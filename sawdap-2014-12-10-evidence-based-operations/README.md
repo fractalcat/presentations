@@ -3,6 +3,9 @@
 Slides for a talk given at the first [Sydney Area Workshop on Data Science and Programming
 Languages](https://wiki.mq.edu.au/display/plrg/SAWDAP).
 
+Prebuilt version available
+[here](https://tesser.org/doc/slides/2014-12-10-sawdap-evidence-based-operations/).
+
 ## Abstract
 
 Failure detection and isolation is a critical component of all
