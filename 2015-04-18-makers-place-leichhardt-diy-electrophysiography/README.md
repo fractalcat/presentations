@@ -1,5 +1,5 @@
 Talk given at [Makers' Place Leichhardt](http://www.makersplace.org.au/)
-on the accessibility electrophysiological recording and analysis
-technology to non-professionals.
+on accessibility and practical questions regarding electrophysiological
+recording and analysis technology (EEG/ECG/EMG).
 
 Beamer template by @christian-marie.
