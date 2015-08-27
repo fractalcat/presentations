@@ -198,8 +198,6 @@ jackknifeQ vs =
 
 `https://tesser.org/doc/slides`
 
-`https://github.com/olorin/approx-quantiles`
-
 ### Other approaches
 
  - CKMS biased quantiles. @Cormode2005
