@@ -1,2 +1,4 @@
 *.pdf
 *.pdfpc
+.stack-work
+dist
