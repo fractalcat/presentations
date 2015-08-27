@@ -1,0 +1,107 @@
+name:                approx-quantile
+version:             0.1.0.0
+synopsis:            Approximate streaming quantiles
+homepage:            http://github.com/olorin/approx-quantile
+license:             MIT
+license-file:        LICENSE
+author:              Sharif Olorin
+maintainer:          sio@tesser.org
+copyright:           2015 Sharif Olorin
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  stack.yaml
+                     README.md
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Statistics.Quantile.Types
+                       Statistics.Quantile.Exact
+                       Statistics.Quantile.Bench
+                       Statistics.Quantile.Bench.Gen
+                       Statistics.Quantile.Bench.Accuracy
+                       Statistics.Quantile.Util
+                       Statistics.Quantile.Approximate.Sampling
+  build-depends:       base >= 4.7 && < 5
+                     , criterion
+                     , data-ordlist
+                     , directory
+                     , filepath
+                     , mwc-random
+                     , pipes
+                     , process
+                     , random-fu
+                     , statistics
+                     , temporary
+                     , transformers
+                     , vector
+  default-language:    Haskell2010
+
+executable gaussian
+  hs-source-dirs:      main
+  main-is:             gaussian.hs
+  build-depends:       base >= 4.7 && <5
+                     , approx-quantile
+                     , optparse-applicative
+                     , pipes
+                     , mwc-random
+  default-language:    Haskell2010
+
+executable gamma
+  hs-source-dirs:      main
+  main-is:             gamma.hs
+  build-depends:       base >= 4.7 && <5
+                     , approx-quantile
+                     , optparse-applicative
+                     , pipes
+                     , mwc-random
+  default-language:    Haskell2010
+
+
+executable bench
+  hs-source-dirs:      main
+  ghc-options:         -auto-all 
+                       -rtsopts 
+                       -with-rtsopts "-T -N" 
+                       -O3
+                       -threaded
+
+  main-is:             bench.hs
+  build-depends:       base >= 4.7 && <5
+                     , approx-quantile
+                     , criterion
+                     , optparse-applicative
+  default-language:    Haskell2010
+
+executable accuracy
+  hs-source-dirs:      main
+  ghc-options:         -auto-all 
+                       -rtsopts 
+                       -with-rtsopts "-T -N" 
+                       -O3
+                       -threaded
+
+  main-is:             accuracy.hs
+  build-depends:       base >= 4.7 && <5
+                     , approx-quantile
+                     , criterion
+                     , optparse-applicative
+                     , pipes
+  default-language:    Haskell2010
+
+executable quantile
+  hs-source-dirs:      main
+  ghc-options:         -auto-all 
+                       -rtsopts 
+                       -with-rtsopts "-T -N" 
+                       -O3
+                       -threaded
+  main-is:             quantile.hs
+  build-depends:       base >= 4.7 && <5
+                     , approx-quantile
+                     , optparse-applicative
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/olorin/approx-quantile
