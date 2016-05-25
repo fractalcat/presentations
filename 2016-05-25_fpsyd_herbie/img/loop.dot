@@ -1,0 +1,19 @@
+digraph loop {
+	subgraph cands {
+		label="Candidate generation";
+		color=blue;
+		style=filled;
+		Sample -> Focus;
+		Focus -> "Compute exact value";
+		"Compute exact value" -> Transform;
+		Transform -> Evaluate;
+		Evaluate -> Focus;
+		Focus -> "Regime inference";
+	}
+
+	"f" -> Sample;
+	"Regime inference" -> "f'";
+
+	f [shape=square,style=filled,color=lightgray];
+	"f'" [shape=square,style=filled,color=lightgray];
+}
