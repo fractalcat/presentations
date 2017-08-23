@@ -1,0 +1,13 @@
+*.pdf
+*.aux
+*.toc
+*.aux
+*.blg
+*.bbl
+*.nav
+*.log
+*.snm
+*.out
+*.vrb
+img/*.png
+_minted-slides/

@@ -1,0 +1,363 @@
+\documentclass{beamer}
+
+\usepackage{amssymb,amsmath}
+\usepackage{relsize}
+\usepackage{hyperref}
+\usepackage{minted}
+\usepackage{color}
+\usepackage{xpatch,letltxmacro}
+\LetLtxMacro{\cminted}{\minted}
+\let\endcminted\endminted
+\xpretocmd{\cminted}{\RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}}{}{}
+\renewcommand{\figurename}{Listing}
+
+\title{Using crypto in Haskell}
+\author{Sharif~Olorin \url{<sio@tesser.org>}}
+\institute{Ambiata}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}[fragile]
+
+\centering
+\begin{cminted}[mathescape]{c}
+#include <stddisclaimer.h>
+\end{cminted}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{sh}
+# cloc usr/src/openssl | head                                                                                                                  
+                                                                                                                                            -----------------------------------------------------------------------------------
+Language     files      blank    comment     code
+-----------------------------------------------------------------------------------
+C              867      33658      33632    249878
+
+# cloc usr/src/hs-tls | head                                                                                                                  
+                                                                                                                                            -----------------------------------------------------------------------------------
+Language     files      blank    comment     code
+-----------------------------------------------------------------------------------
+Haskell        69        1393      1199      8518
+\end{minted}
+
+
+\end{frame}
+
+\begin{frame}
+
+\center
+...so why so many terrible libraries?
+\end{frame}
+
+\begin{frame}
+\frametitle{A basic authentication framework}
+
+\begin{itemize}
+\item Securely store user credentials.
+\item Implement authentication without leaking data.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+\begin{figure}
+  \includegraphics[scale=0.55]{img/auth.png}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{haskell}
+newtype User = User Text
+
+newtype Password = Password Text
+
+newtype Salt = Salt ByteString
+
+newtype Hash = Hash ByteString
+
+data Credential = Credential !Salt !Hash
+
+data Verification = Verified | NotVerified
+\end{minted}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{haskell}
+authenticate :: User -> Password -> IO Verification
+
+register :: User -> Password -> IO ()
+\end{minted}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{haskell}
+register :: User -> Password -> IO ()
+register username pass = do
+  salt <- readEntropy
+  storeUser salt $ hash salt pass
+\end{minted}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{haskell}
+authenticate :: User -> Password -> IO Verification
+authenticate username pass =
+  lookupUser username >>= \(mu :: Maybe Credential) ->
+    case mu of
+      Just cred ->
+        pure $ verify pass cred
+\end{minted}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{haskell}
+authenticate :: User -> Password -> IO Verification
+authenticate username pass =
+  lookupUser username >>= \(mu :: Maybe Credential) ->
+    case mu of
+      Just cred ->
+        pure $ verify pass cred
+      Nothing ->
+        pure $ verify "" fakeCred
+\end{minted}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{haskell}
+authenticate :: User -> Password -> IO Verification
+authenticate username pass =
+  lookupUser username >>= \(mu :: Maybe Credential) ->
+    case mu of
+      Just cred ->
+        verify pass cred
+      Nothing -> do
+        _ <- verify pass fakeCred
+        pure NotVerified
+\end{minted}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{haskell}
+verify :: Password -> Credential -> IO Verification
+verify pass (Credential salt h) = do
+  h' <- hash salt pass
+  case h `constEq` h' of
+    True ->
+      pure Verified
+    False ->
+      pure NotVerified
+\end{minted}
+
+\end{frame}
+
+
+\begin{frame}
+
+\begin{figure}
+  \includegraphics[scale=0.55]{img/auth-prims.png}
+\end{figure}
+\end{frame}
+
+
+
+\begin{frame}[fragile]
+
+\frametitle{On comparison}
+
+\begin{minted}[mathescape]{haskell}
+-- | Message authentication code wrapper.
+newtype MAC = MAC ByteString
+  deriving (Eq, Show)
+
+-- | Verify origin and integrity of message.
+authenticate :: MAC -> Message -> Key -> Verification
+authenticate mac msg key =
+  let
+    mac' = computeMAC msg key
+  in
+  case mac == mac' of
+    True ->
+      Verified
+    False ->
+      NotVerified
+\end{minted}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{haskell}
+eq :: ByteString -> ByteString -> Bool
+eq a@(PS fp off len) b@(PS fp' off' len')
+  | len /= len'              = False
+  | fp == fp' && off == off' = True
+  | otherwise                = compareBytes a b == EQ
+
+compareBytes :: ByteString -> ByteString -> Ordering
+compareBytes (PS fp1 off1 len1) (PS fp2 off2 len2) =
+    accursedUnutterablePerformIO $
+      withForeignPtr fp1 $ \p1 ->
+      withForeignPtr fp2 $ \p2 -> do
+        i <- memcmp (p1 `plusPtr` off1)
+                    (p2 `plusPtr` off2)
+                    (min len1 len2)
+        return $! case i `compare` 0 of
+                    EQ  -> len1 `compare` len2
+                    x   -> x
+\end{minted}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{c}
+bool const_cmp(uint8_t *buf1,
+               size_t s1,
+               uint8_t *buf2,
+               size_t s2) {
+	size_t i;
+	uint8_t acc = 0;
+	if (s1 != s2) {
+		return FALSE;
+	}
+	for (i = 0; i < s1; i++) {
+		acc |= buf1[i] ^ buf2[i];
+	}
+	if (acc == 0) {
+		return TRUE;
+	}
+	return FALSE;
+}
+\end{minted}
+
+\end{frame}
+
+\begin{frame}
+
+\frametitle{Testing}
+
+\begin{itemize}
+  \item Property tests for everything.
+  \item But especially C code.
+  \item Good generator coverage is essential.
+  \item Timing tests.
+  \item Consider supplementing with statistical tests where
+    appropriate.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\begin{minted}[mathescape]{haskell}
+prop_verify_timing =
+  forAll (arbitrary :: Password) $ \pass ->
+    (t, r) <- run . withCPUTime $ verify pass fakeCred
+    stop $ conjoin [
+        r === NotVerified
+      , t >= minHashTime
+      ]
+  where
+    withCPUTime a = do
+      t1 <- liftIO getCPUTime
+      r <- a
+      t2 <- liftIO getCPUTime
+      pure (t2 - t1, r)
+\end{minted}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Some sample ``red flags'' in crypto packages}
+
+\begin{itemize}
+\item Using a bespoke implementation of an established primitive for
+  no good reason.
+\item Trivial (or missing) testsuite.
+\item Over-enthusiastic use of `unsafePerformIO`.
+\item Derived `Eq` instances for authentication codes or signatures.
+\item Unsanitary combination of entropy sources (e.g., sequential
+  reading and concatenation).
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Suspicious...}
+
+\centering
+\begin{cminted}[mathescape]{haskell}
+
+verifyCredential
+  :: Password
+  -> Salt
+  -> Hash
+  -> Verification
+\end{cminted}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{RUN}
+
+\centering
+\begin{cminted}[mathescape]{haskell}
+verifyCredential
+  :: ByteString
+  -> ByteString
+  -> ByteString
+  -> Bool
+\end{cminted}
+
+\end{frame}
+
+
+\begin{frame}
+
+\frametitle{Morals?}
+
+\begin{itemize}
+
+  \item Timing is a side-effect.
+  \item Laziness is not always your friend.
+  \item It's possible to have too many pure functions.
+  \item C is not literally Satan...
+  \item ...as long as you have QuickCheck.
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Thanks!}
+
+
+  \centering
+  \url{https://github.com/olorin/slides}
+
+  \url{<sio@tesser.org>}
+\end{frame}
+
+
+\end{document}

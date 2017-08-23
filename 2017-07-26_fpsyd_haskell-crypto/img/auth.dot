@@ -1,0 +1,13 @@
+digraph auth {
+      graph [ dpi = 70 ];
+      RNG -> Salt
+      Salt -> Store
+      Password -> KDF
+      Salt -> KDF
+      KDF -> Hash
+      Hash -> Store
+      User -> Password
+
+      KDF [label="Key derivation function"]
+      Store [label="Database"]
+}

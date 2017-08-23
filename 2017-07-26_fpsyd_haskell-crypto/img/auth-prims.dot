@@ -1,0 +1,14 @@
+digraph auth {
+      graph [ dpi = 70 ];
+      RNG -> Salt
+      Salt -> Store
+      Password -> KDF
+      Salt -> KDF
+      KDF -> Hash
+      Hash -> Store
+      User -> Password
+
+      KDF [label="scrypt"]
+      RNG [label="/dev/urandom"]
+      Store [label="Database"]
+}
